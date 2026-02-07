@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Screenshot API</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #737373;
+      margin-bottom: 40px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      color: #a3a3a3;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 16px;
+      background: #171717;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      color: #e5e5e5;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      border-color: #525252;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .row .form-group {
+      flex: 1;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #fff;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      margin-bottom: 0;
+      color: #e5e5e5;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 24px;
+      background: #fff;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #e5e5e5;
+    }
+
+    button:disabled {
+      background: #525252;
+      color: #a3a3a3;
+      cursor: not-allowed;
+    }
+
+    .result {
+      margin-top: 40px;
+    }
+
+    .result img {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #262626;
+    }
+
+    .error {
+      background: #2d1515;
+      border: 1px solid #5c2020;
+      color: #f87171;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #737373;
+      margin-top: 40px;
+    }
+
+    .download-btn {
+      margin-top: 16px;
+      background: transparent;
+      border: 1px solid #262626;
+      color: #e5e5e5;
+    }
+
+    .download-btn:hover {
+      background: #171717;
+    }
+
+    .curl-box {
+      background: #171717;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 16px;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .curl-box code {
+      flex: 1;
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: #a3a3a3;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    .copy-btn {
+      width: auto;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      background: #262626;
+      color: #e5e5e5;
+      border: 1px solid #404040;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Screenshot API</h1>
+    <p class="subtitle">Capture screenshots of any website</p>
+
+    <form id="screenshot-form">
+      <div class="form-group">
+        <label for="url">URL</label>
+        <input type="text" id="url" placeholder="https://example.com" required>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="width">Width</label>
+          <input type="number" id="width" placeholder="1280" value="1280">
+        </div>
+        <div class="form-group">
+          <label for="height">Height</label>
+          <input type="number" id="height" placeholder="720" value="720">
+        </div>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="fullPage">
+        <label for="fullPage">Full page screenshot</label>
+      </div>
+
+      <button type="submit" id="submit-btn">Take Screenshot</button>
+    </form>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('screenshot-form');
+    const result = document.getElementById('result');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const url = document.getElementById('url').value;
+      const width = parseInt(document.getElementById('width').value) || 1280;
+      const height = parseInt(document.getElementById('height').value) || 720;
+      const fullPage = document.getElementById('fullPage').checked;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Capturing...';
+      result.innerHTML = '<div class="loading">Taking screenshot...</div>';
+
+      try {
+        const response = await fetch('/screenshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, width, height, fullPage })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error?.message || 'Failed to capture screenshot');
+        }
+
+        const imageUrl = data.data.url;
+        const filename = new URL(url).hostname + '.png';
+        const curlCmd = `curl -X POST "http://localhost:3000/screenshot?response=image" -H "Content-Type: application/json" -d '${JSON.stringify({ url, width, height, fullPage })}' --output ${filename}`;
+
+        result.innerHTML = `
+          <img src="${imageUrl}" alt="Screenshot">
+          <div class="curl-box">
+            <code>${curlCmd}</code>
+            <button class="copy-btn" onclick="copyToClipboard(this, \`${curlCmd.replace(/`/g, '\\`')}\`)">Copy</button>
+          </div>
+          <button class="download-btn" onclick="downloadImage('${imageUrl}', '${filename}')">
+            Download PNG
+          </button>
+        `;
+      } catch (err) {
+        result.innerHTML = `<div class="error">${err.message}</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Take Screenshot';
+      }
+    });
+
+    function downloadImage(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+
+    function copyToClipboard(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = original, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
